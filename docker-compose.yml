@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # RabbitMQ UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    networks:
+      - nest-network
+
+  # mssql:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   container_name: mssql
+  #   ports:
+  #     - "1433:1433"
+  #   environment:
+  #     ACCEPT_EULA: "Y"
+  #     SA_PASSWORD: "YourStrong@Password"
+  #   networks:
+  #     - nest-network
+
+  nextgen_auth:
+    build:
+      context: ./nextgen_auth
+    container_name: nextgen_auth
+    ports:
+      - "3001:3000"
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: YourStrong@Password
+      DB_DATABASE: app1db
+    depends_on:
+      - rabbitmq
+      # - mssql
+    networks:
+      - nest-network
+
+  nextgen_datasource:
+    build:
+      context: ./nextgen_datasource
+    container_name: nextgen_datasource
+    ports:
+      - "3002:3000"
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: YourStrong@Password
+      DB_DATABASE: app2db
+    depends_on:
+      - rabbitmq
+      # - mssql
+    networks:
+      - nest-network
+
+  nextgen_transactions_audit:
+    build:
+      context: ./nextgen_transactions_audit
+    container_name: nextgen_transactions_audit
+    ports:
+      - "3003:3000"
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: YourStrong@Password
+      DB_DATABASE: app3db
+    depends_on:
+      - rabbitmq
+      # - mssql
+    networks:
+      - nest-network
+
+  nextgen-vault-api-consumer:
+    build:
+      context: ./nextgen-vault-api-consumer
+    container_name: nextgen-vault-api-consumer
+    ports:
+      - "3004:3000"
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: YourStrong@Password
+      DB_DATABASE: app4db
+    depends_on:
+      - rabbitmq
+      # - mssql
+    networks:
+      - nest-network
+
+networks:
+  nest-network:
+    driver: bridge
